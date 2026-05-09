@@ -103,11 +103,44 @@ service cloud.firestore {
     match /transactions/{transactionId} {
       allow read, write: if request.auth != null;
     }
+
+    // Daily Stats: any authenticated user can read/write
+    match /dailyStats/{statId} {
+      allow read, write: if request.auth != null;
+    }
+
+    // Customers: read for all auth, admin can delete, cashiers can only create/update
+    match /customers/{customerId} {
+      allow read: if request.auth != null;
+      allow create, update: if request.auth != null;
+      allow delete: if request.auth != null && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "admin";
+    }
+
+    // Utang Transactions & Payments: any authenticated user can read/write
+    match /utangTransactions/{txId} {
+      allow read, write: if request.auth != null;
+    }
+    match /utangPayments/{paymentId} {
+      allow read, write: if request.auth != null;
+    }
   }
 }
 ```
 
 3. Click **"Publish"**
+
+## 7.1 Firestore Composite Indexes
+
+For the Utang module to load history efficiently, you may need a composite index. 
+1. Go to **Firestore Database → Indexes → Composite**
+2. Click **Add Index**
+3. **Collection ID:** `utangTransactions`
+4. **Fields to index:**
+   - `status` (Ascending)
+   - `date` (Descending)
+5. Click **Create**
+*(Alternatively, Firebase will provide a direct link in the browser console if a query fails due to a missing index. Clicking that link automatically builds it.)*
 
 ## 8. Deploy to GitHub Pages
 
@@ -125,7 +158,7 @@ service cloud.firestore {
 4. Under **Source**, select **"Deploy from a branch"**
 5. Select **main** branch and **/ (root)** folder
 6. Click **Save**
-7. Your app will be live at `https://YOUR_USERNAME.github.io/YOUR_REPO/`
+7. Your app will be live at `https://epiow.github.io/POS-ant/`
 
 ## Troubleshooting
 

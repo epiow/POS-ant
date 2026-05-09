@@ -19,10 +19,12 @@ function navigateToTab(tabName) {
   if (tabName === 'dashboard') loadDashboard();
   if (tabName === 'transactions') loadTransactions('today');
   if (tabName === 'pos') renderPOSProducts();
+  if (tabName === 'utang') showUtangView('dashboard');
 }
 
 function initModules() {
   initProducts();
+  initUtang();
 }
 
 // Toast notification system

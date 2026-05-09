@@ -25,7 +25,7 @@ async function addProduct(data) {
   try {
     showLoading(true);
     await db.collection('products').add({
-      name: data.name.trim(), price: Number(data.price),
+      name: data.name.trim(), price: Number(data.price), cost: Number(data.cost || 0),
       stock: Number(data.stock), category: data.category.trim(),
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     });
@@ -39,7 +39,7 @@ async function updateProduct(id, data) {
   try {
     showLoading(true);
     await db.collection('products').doc(id).update({
-      name: data.name.trim(), price: Number(data.price),
+      name: data.name.trim(), price: Number(data.price), cost: Number(data.cost || 0),
       stock: Number(data.stock), category: data.category.trim()
     });
     showToast('Product updated!', 'success');
@@ -88,6 +88,7 @@ function editProduct(id) {
   editingProductId = id;
   document.getElementById('product-name').value = p.name;
   document.getElementById('product-price').value = p.price;
+  document.getElementById('product-cost').value = p.cost !== undefined ? p.cost : 0;
   document.getElementById('product-stock').value = p.stock;
   document.getElementById('product-category').value = p.category;
   document.getElementById('product-form-title').textContent = 'Edit Product';
@@ -109,11 +110,13 @@ function handleProductFormSubmit(e) {
   const data = {
     name: document.getElementById('product-name').value,
     price: document.getElementById('product-price').value,
+    cost: document.getElementById('product-cost').value,
     stock: document.getElementById('product-stock').value,
     category: document.getElementById('product-category').value
   };
-  if (!data.name || !data.price || !data.category) { showToast('Fill in all fields.', 'error'); return; }
+  if (!data.name || !data.price || !data.category || data.cost === '') { showToast('Fill in all fields.', 'error'); return; }
   if (Number(data.price) <= 0) { showToast('Price must be > 0.', 'error'); return; }
+  if (Number(data.cost) < 0) { showToast('Cost cannot be negative.', 'error'); return; }
   if (Number(data.stock) < 0) { showToast('Stock cannot be negative.', 'error'); return; }
   editingProductId ? updateProduct(editingProductId, data) : addProduct(data);
 }

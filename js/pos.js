@@ -37,7 +37,7 @@ function addToCart(productId) {
     }
     existing.qty++;
   } else {
-    cart.push({ id: product.id, name: product.name, price: product.price, qty: 1, maxStock: product.stock });
+    cart.push({ id: product.id, name: product.name, price: product.price, cost: product.cost || 0, category: product.category || 'Uncategorized', qty: 1, maxStock: product.stock });
   }
   renderCart();
 }
@@ -123,7 +123,7 @@ async function completeSale() {
     // Save transaction
     const txRef = db.collection('transactions').doc();
     batch.set(txRef, {
-      items: cart.map(i => ({ id: i.id, name: i.name, price: i.price, qty: i.qty, subtotal: i.price * i.qty })),
+      items: cart.map(i => ({ id: i.id, name: i.name, price: i.price, cost: i.cost, category: i.category, qty: i.qty, subtotal: i.price * i.qty })),
       total: total,
       amountPaid: paid,
       change: paid - total,
@@ -131,6 +131,29 @@ async function completeSale() {
       cashierName: user.name,
       timestamp: firebase.firestore.FieldValue.serverTimestamp()
     });
+
+    // Update dailyStats
+    const dateStr = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD format
+    const dailyStatsRef = db.collection('dailyStats').doc(dateStr);
+    const totalProfit = cart.reduce((sum, item) => sum + ((item.price - item.cost) * item.qty), 0);
+    const hourStr = new Date().getHours().toString();
+    
+    const statsUpdate = {
+      date: dateStr,
+      totalSales: firebase.firestore.FieldValue.increment(total),
+      totalProfit: firebase.firestore.FieldValue.increment(totalProfit),
+      transactionCount: firebase.firestore.FieldValue.increment(1)
+    };
+    statsUpdate[`hourlySales.${hourStr}`] = firebase.firestore.FieldValue.increment(total);
+    
+    cart.forEach(item => {
+      statsUpdate[`categorySales.${item.category}`] = firebase.firestore.FieldValue.increment(item.price * item.qty);
+      statsUpdate[`productSales.${item.id}.name`] = item.name;
+      statsUpdate[`productSales.${item.id}.qty`] = firebase.firestore.FieldValue.increment(item.qty);
+      statsUpdate[`productSales.${item.id}.revenue`] = firebase.firestore.FieldValue.increment(item.price * item.qty);
+    });
+
+    batch.set(dailyStatsRef, statsUpdate, { merge: true });
 
     await batch.commit();
     showToast('Sale completed!', 'success');

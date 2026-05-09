@@ -59,6 +59,7 @@
       <button class="tab-btn" data-tab="products" data-admin-only>📦 Products</button>
       <button class="tab-btn active" data-tab="pos">🛒 POS</button>
       <button class="tab-btn" data-tab="transactions">📋 Transactions</button>
+      <button class="tab-btn" data-tab="utang">📓 Utang</button>
     </nav>
 
     <!-- ========== DASHBOARD SECTION ========== -->
@@ -71,19 +72,66 @@
           <div class="stat-label">Today's Sales</div>
         </div>
         <div class="stat-card">
+          <div class="stat-icon">📈</div>
+          <div class="stat-value text-success" id="dash-total-profit">₱0.00</div>
+          <div class="stat-label">Estimated Profit</div>
+        </div>
+        <div class="stat-card">
           <div class="stat-icon">🧾</div>
-          <div class="stat-value" id="dash-tx-count">0</div>
-          <div class="stat-label">Transactions Today</div>
+          <div class="stat-value" id="dash-atv">₱0.00</div>
+          <div class="stat-label">Avg Transaction Value</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">📓</div>
+          <div class="stat-value text-danger" id="dash-total-utang">₱0.00</div>
+          <div class="stat-label">Total Outstanding Utang</div>
         </div>
       </div>
+      
       <div class="dash-grid">
-        <div class="card">
-          <h3 class="card-title">🏆 Top 5 Best Sellers (Today)</h3>
-          <div id="dash-top-products"><p class="text-muted">Loading...</p></div>
+        <!-- Left Column -->
+        <div class="dash-col">
+          <div class="card">
+            <h3 class="card-title">🏆 Top 5 Best Sellers (Today)</h3>
+            <div id="dash-top-products"><p class="text-muted">Loading...</p></div>
+          </div>
+          
+          <div class="card">
+            <h3 class="card-title">📊 7-Day Sales Trend</h3>
+            <div id="dash-sales-trend" class="sales-trend-container">
+              <p class="text-muted">Loading...</p>
+            </div>
+          </div>
+          
+          <div class="card">
+            <h3 class="card-title">🏪 Store Insights</h3>
+            <div class="insights-list">
+              <div class="insight-item">
+                <span class="insight-label">Peak Hour Today:</span>
+                <span class="insight-value" id="dash-peak-hour">—</span>
+              </div>
+              <div class="insight-item">
+                <span class="insight-label">Top Category Today:</span>
+                <span class="insight-value" id="dash-top-category">—</span>
+              </div>
+              <div class="insight-item">
+                <span class="insight-label">Total Inventory Value:</span>
+                <span class="insight-value" id="dash-inventory-value">₱0.00</span>
+              </div>
+              <div class="insight-item">
+                <span class="insight-label">Overdue Utang Customers:</span>
+                <span class="insight-value text-danger" id="dash-overdue-customers">0</span>
+              </div>
+            </div>
+          </div>
         </div>
-        <div class="card">
-          <h3 class="card-title">⚠️ Low Stock Alerts</h3>
-          <div id="dash-low-stock"><p class="text-muted">Loading...</p></div>
+        
+        <!-- Right Column -->
+        <div class="dash-col">
+          <div class="card">
+            <h3 class="card-title">⚠️ Low Stock Alerts & Reorders</h3>
+            <div id="dash-low-stock"><p class="text-muted">Loading...</p></div>
+          </div>
         </div>
       </div>
     </section>
@@ -104,7 +152,11 @@
               <input type="text" id="product-category" class="form-input" placeholder="e.g. Noodles">
             </div>
             <div class="form-group">
-              <label for="product-price">Price (₱) *</label>
+              <label for="product-cost">Cost (₱) *</label>
+              <input type="number" id="product-cost" class="form-input" placeholder="0.00" step="0.01" min="0" required>
+            </div>
+            <div class="form-group">
+              <label for="product-price">Selling Price (₱) *</label>
               <input type="number" id="product-price" class="form-input" placeholder="0.00" step="0.01" min="0.01" required>
             </div>
             <div class="form-group">
@@ -185,6 +237,96 @@
       </div>
     </section>
 
+    <!-- ========== UTANG SECTION ========== -->
+    <section id="section-utang" class="tab-section hidden">
+      <h2 class="section-title">Utang (Credit) Management</h2>
+      
+      <!-- Utang Sub-Navigation -->
+      <div class="sub-nav mb-4">
+        <button class="btn btn-primary" onclick="showUtangView('dashboard')">Customers & Balances</button>
+        <button class="btn btn-outline" onclick="showUtangView('create')">Create Utang (Borrow)</button>
+        <button class="btn btn-outline" onclick="showUtangView('history')">Utang History</button>
+      </div>
+
+      <!-- View: Dashboard / Customer List -->
+      <div id="utang-view-dashboard" class="utang-view">
+        <div class="stats-grid mb-4">
+          <div class="stat-card">
+            <div class="stat-value text-danger" id="utang-dash-total">₱0.00</div>
+            <div class="stat-label">Total Outstanding</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="utang-dash-count">0</div>
+            <div class="stat-label">Customers w/ Balance</div>
+          </div>
+        </div>
+        
+        <div class="card mb-4">
+          <div class="flex-between mb-3">
+            <h3 class="card-title" style="margin-bottom:0">Customers</h3>
+            <button class="btn btn-sm btn-primary" onclick="openCustomerModal()">+ Add Customer</button>
+          </div>
+          <div id="customer-list"><div class="empty-state"><p>Loading customers...</p></div></div>
+        </div>
+      </div>
+
+      <!-- View: Create Utang POS -->
+      <div id="utang-view-create" class="utang-view hidden">
+        <div class="card mb-4">
+          <h3 class="card-title">Select Customer</h3>
+          <div style="display:flex;gap:10px;align-items:center;">
+            <select id="utang-customer-select" class="form-input" style="max-width:300px;">
+              <option value="">-- Choose Customer --</option>
+            </select>
+            <span id="utang-customer-limit" class="text-muted"></span>
+          </div>
+        </div>
+        <div class="pos-layout">
+          <div class="pos-products-panel card">
+            <h3 class="card-title">Products</h3>
+            <input type="text" id="utang-pos-search" placeholder="Search products...">
+            <div id="utang-pos-product-grid"><div class="empty-state"><p>Loading products...</p></div></div>
+          </div>
+          <div class="pos-cart-panel card">
+            <h3 class="card-title">Utang Cart</h3>
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead><tr><th>Item</th><th>Price</th><th>Qty</th><th>Subtotal</th><th></th></tr></thead>
+                <tbody id="utang-cart-body">
+                  <tr><td colspan="5" class="text-center">Cart is empty</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="cart-footer">
+              <div class="cart-total-row">
+                <span>Total Utang</span>
+                <span id="utang-cart-total" class="text-danger">₱0.00</span>
+              </div>
+              <div class="cart-actions mt-3">
+                <button id="utang-save-btn" class="btn btn-danger" style="flex:1" onclick="saveUtangTransaction()">✓ Save Utang</button>
+                <button class="btn btn-outline" style="flex:1" onclick="clearUtangCart()">✕ Cancel</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- View: History -->
+      <div id="utang-view-history" class="utang-view hidden">
+        <div class="card">
+          <h3 class="card-title">Utang Transaction History</h3>
+          <div class="filter-bar mb-3">
+            <select id="utang-history-filter" class="form-input" style="max-width:200px" onchange="loadUtangHistory()">
+              <option value="all">All Statuses</option>
+              <option value="outstanding">Outstanding / Partial</option>
+              <option value="paid">Fully Paid</option>
+            </select>
+          </div>
+          <div id="utang-history-list"><div class="empty-state"><p>Loading history...</p></div></div>
+        </div>
+      </div>
+    </section>
+
   </div><!-- end app-screen -->
 
   <!-- ==================== MODAL ==================== -->
@@ -209,6 +351,7 @@
   <script src="js/products.js"></script>
   <script src="js/pos.js"></script>
   <script src="js/transactions.js"></script>
+  <script src="js/utang.js"></script>
   <script src="js/dashboard.js"></script>
   <script src="js/app.js"></script>
 </body>
