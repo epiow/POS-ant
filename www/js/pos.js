@@ -181,7 +181,7 @@ function prepareReceipt(total, paid, change) {
   const user = getCurrentUser();
   let h = `
     <div class="receipt-header">
-      <h2>Sari-Sari Store</h2>
+      <h2>Petlean Store</h2>
       <p>${now.toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
       <p>${now.toLocaleTimeString('en-PH')}</p>
       <p>Cashier: ${user ? user.name : 'N/A'}</p>

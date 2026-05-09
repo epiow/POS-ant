@@ -1,10 +1,10 @@
-# Sari-Sari Store POS — Firebase Setup Guide
+# Petlean Store POS — Firebase Setup Guide
 
 ## 1. Create a Firebase Project
 
 1. Go to [Firebase Console](https://console.firebase.google.com/)
 2. Click **"Add project"**
-3. Enter a project name (e.g., `sari-sari-pos`)
+3. Enter a project name (e.g., `petlean-pos`)
 4. (Optional) Disable Google Analytics if not needed
 5. Click **"Create project"**
 
