@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sari-Sari Store POS</title>
+  <meta name="description" content="Point of Sale system for sari-sari stores. Manage products, process sales, and track transactions.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- Loading Overlay -->
+  <div id="loading-overlay" class="loading-overlay hidden"><div class="spinner"></div></div>
+
+  <!-- Toast Container -->
+  <div id="toast-container"></div>
+
+  <!-- ==================== LOGIN SCREEN ==================== -->
+  <div id="login-screen" class="login-screen">
+    <div class="login-card">
+      <span class="store-icon">🏪</span>
+      <h1>Sari-Sari Store</h1>
+      <p class="subtitle">Point of Sale System</p>
+      <form id="login-form">
+        <div class="form-group">
+          <label for="login-email">Email</label>
+          <input type="email" id="login-email" class="form-input" placeholder="you@example.com" required>
+        </div>
+        <div class="form-group">
+          <label for="login-password">Password</label>
+          <input type="password" id="login-password" class="form-input" placeholder="••••••••" required>
+        </div>
+        <button type="submit" class="btn btn-primary btn-block" style="margin-top:8px">Sign In</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==================== APP SCREEN ==================== -->
+  <div id="app-screen" class="hidden">
+
+    <!-- Header -->
+    <header class="app-header">
+      <div class="app-title">
+        <span class="icon">🏪</span>
+        <span class="full-title">Sari-Sari Store POS</span>
+        <span class="short-title">POS</span>
+      </div>
+      <div class="header-right">
+        <div id="user-display"></div>
+        <button id="logout-btn" class="btn btn-outline">Logout</button>
+      </div>
+    </header>
+
+    <!-- Tab Navigation -->
+    <nav class="tab-nav">
+      <button class="tab-btn" data-tab="dashboard" data-admin-only>📊 Dashboard</button>
+      <button class="tab-btn" data-tab="products" data-admin-only>📦 Products</button>
+      <button class="tab-btn active" data-tab="pos">🛒 POS</button>
+      <button class="tab-btn" data-tab="transactions">📋 Transactions</button>
+    </nav>
+
+    <!-- ========== DASHBOARD SECTION ========== -->
+    <section id="section-dashboard" class="tab-section hidden">
+      <h2 class="section-title">Dashboard</h2>
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon">💰</div>
+          <div class="stat-value" id="dash-total-sales">₱0.00</div>
+          <div class="stat-label">Today's Sales</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">🧾</div>
+          <div class="stat-value" id="dash-tx-count">0</div>
+          <div class="stat-label">Transactions Today</div>
+        </div>
+      </div>
+      <div class="dash-grid">
+        <div class="card">
+          <h3 class="card-title">🏆 Top 5 Best Sellers (Today)</h3>
+          <div id="dash-top-products"><p class="text-muted">Loading...</p></div>
+        </div>
+        <div class="card">
+          <h3 class="card-title">⚠️ Low Stock Alerts</h3>
+          <div id="dash-low-stock"><p class="text-muted">Loading...</p></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== PRODUCTS SECTION ========== -->
+    <section id="section-products" class="tab-section hidden">
+      <h2 class="section-title">Product Management</h2>
+      <div class="card">
+        <h3 class="card-title" id="product-form-title">Add New Product</h3>
+        <form id="product-form">
+          <div class="product-form-grid">
+            <div class="form-group">
+              <label for="product-name">Product Name *</label>
+              <input type="text" id="product-name" class="form-input" placeholder="e.g. Pancit Canton" required>
+            </div>
+            <div class="form-group">
+              <label for="product-category">Category *</label>
+              <input type="text" id="product-category" class="form-input" placeholder="e.g. Noodles">
+            </div>
+            <div class="form-group">
+              <label for="product-price">Price (₱) *</label>
+              <input type="number" id="product-price" class="form-input" placeholder="0.00" step="0.01" min="0.01" required>
+            </div>
+            <div class="form-group">
+              <label for="product-stock">Stock *</label>
+              <input type="number" id="product-stock" class="form-input" placeholder="0" min="0" required>
+            </div>
+          </div>
+          <div style="display:flex;gap:10px;margin-top:12px">
+            <button type="submit" id="product-submit-btn" class="btn btn-primary">Add Product</button>
+            <button type="button" id="product-cancel-btn" class="btn btn-outline hidden" onclick="resetProductForm()">Cancel</button>
+          </div>
+        </form>
+      </div>
+      <div class="card">
+        <h3 class="card-title">All Products</h3>
+        <div id="product-list"><div class="empty-state"><p>Loading products...</p></div></div>
+      </div>
+    </section>
+
+    <!-- ========== POS SECTION ========== -->
+    <section id="section-pos" class="tab-section hidden">
+      <h2 class="section-title">Point of Sale</h2>
+      <div class="pos-layout">
+        <!-- Products Panel -->
+        <div class="pos-products-panel card">
+          <h3 class="card-title">Products</h3>
+          <input type="text" id="pos-search" placeholder="Search products...">
+          <div id="pos-product-grid"><div class="empty-state"><p>Loading products...</p></div></div>
+        </div>
+        <!-- Cart Panel -->
+        <div class="pos-cart-panel card">
+          <h3 class="card-title">Cart</h3>
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead><tr><th>Item</th><th>Price</th><th>Qty</th><th>Subtotal</th><th></th></tr></thead>
+              <tbody id="cart-body">
+                <tr><td colspan="5" class="text-center">Cart is empty</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="cart-footer">
+            <div class="cart-total-row">
+              <span>Total</span>
+              <span id="cart-total">₱0.00</span>
+            </div>
+            <div class="payment-row">
+              <label for="amount-paid">Amount Paid (₱):</label>
+              <input type="number" id="amount-paid" placeholder="0.00" step="0.01" min="0">
+              <span>Change: <span id="change-amount" class="change-display">₱0.00</span></span>
+            </div>
+            <div class="cart-actions">
+              <button id="complete-sale-btn" class="btn btn-success" style="flex:1">✓ Complete Sale</button>
+              <button id="cancel-sale-btn" class="btn btn-danger" style="flex:1">✕ Cancel Sale</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== TRANSACTIONS SECTION ========== -->
+    <section id="section-transactions" class="tab-section hidden">
+      <h2 class="section-title">Transaction History</h2>
+      <div class="card">
+        <div class="filter-bar">
+          <select id="tx-filter-select">
+            <option value="today">Today</option>
+            <option value="week">This Week</option>
+            <option value="custom">Custom Range</option>
+          </select>
+          <div id="custom-date-range" class="custom-date-range hidden">
+            <input type="date" id="filter-date-from">
+            <span>to</span>
+            <input type="date" id="filter-date-to">
+            <button id="apply-custom-filter" class="btn btn-sm btn-primary">Apply</button>
+          </div>
+        </div>
+        <div id="transactions-list"><div class="empty-state"><p>Loading transactions...</p></div></div>
+      </div>
+    </section>
+
+  </div><!-- end app-screen -->
+
+  <!-- ==================== MODAL ==================== -->
+  <div id="modal-overlay" class="modal-overlay hidden">
+    <div id="modal-content" class="modal-content"></div>
+  </div>
+
+  <!-- ==================== RECEIPT (print only) ==================== -->
+  <div id="receipt-area" class="receipt-area">
+    <div id="receipt-content"></div>
+  </div>
+
+  <!-- ==================== SCRIPTS ==================== -->
+  <!-- Firebase v9 Compat CDN -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
+  <!-- App Scripts (order matters — config first, then modules, then orchestrator) -->
+  <script src="js/firebase-config.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/products.js"></script>
+  <script src="js/pos.js"></script>
+  <script src="js/transactions.js"></script>
+  <script src="js/dashboard.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
