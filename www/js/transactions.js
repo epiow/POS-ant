@@ -122,7 +122,7 @@ function applyCustomFilter() {
 }
 
 async function deleteTransaction(txId, skipConfirm = false) {
-  if (!skipConfirm && !confirm('Are you sure you want to VOID this transaction? This will return stock and deduct from today\\'s sales.')) return;
+  if (!skipConfirm && !confirm("Are you sure you want to VOID this transaction? This will return stock and deduct from today's sales.")) return;
   
   const tx = transactionsCache.find(t => t.id === txId);
   if (!tx) return;
@@ -211,8 +211,8 @@ async function editTransaction(txId) {
       });
       
       // Switch to POS tab
-      if (typeof switchTab === 'function') {
-        switchTab('pos');
+      if (typeof navigateToTab === 'function') {
+        navigateToTab('pos');
       }
       
       if (typeof renderCart === 'function') {
