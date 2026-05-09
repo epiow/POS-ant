@@ -33,7 +33,6 @@ async function loadDashboard() {
     document.getElementById('dash-total-sales').textContent = '₱' + sales.toFixed(2);
     document.getElementById('dash-total-profit').textContent = '₱' + profit.toFixed(2);
     document.getElementById('dash-atv').textContent = '₱' + atv.toFixed(2);
-    document.getElementById('dash-tx-count').textContent = txCount;
 
     // 3. Peak Hour
     let peakHourStr = '—';
