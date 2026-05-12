@@ -199,19 +199,6 @@ async function lookupGlobalProduct(barcode, context = 'pos') {
   }
 }
 
-async function startCameraScan(target = 'pos') {
-  scanContext = target;
-  // 1. Check if we are on a native platform
-  const isNative = typeof Capacitor !== 'undefined' && Capacitor.isNativePlatform();
-    }
-  } catch (e) {
-    console.error('API Error:', e);
-    showToast('Failed to lookup barcode online.', 'error');
-  } finally {
-    showLoading(false);
-  }
-}
-
 function showQuickAddModal(barcode, name, category) {
   let h = `
     <div class="modal-header">
@@ -294,6 +281,7 @@ async function handleQuickAdd(e) {
 }
 
 async function startCameraScan(target = 'pos') {
+  scanContext = target;
   // 1. Check if we are on a native platform
   const isNative = typeof Capacitor !== 'undefined' && Capacitor.isNativePlatform();
 
