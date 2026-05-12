@@ -185,7 +185,10 @@ async function lookupGlobalProduct(barcode, context = 'pos') {
       }
     } else {
       if (context === 'pos') {
-        showToast(`Product not found: ${barcode}`, 'warning');
+        showToast('Product not found globally. Please enter details manually.', 'info');
+        showQuickAddModal(barcode, '', '');
+      } else {
+        showToast('Product not found globally. Please enter details manually.', 'info');
       }
     }
   } catch (e) {
