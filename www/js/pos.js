@@ -346,41 +346,43 @@ async function startCameraScan(target = 'pos') {
 let html5QrCode = null;
 
 async function startWebCameraScan() {
+  console.log("Attempting to start web scanner...");
+  
   if (typeof Html5Qrcode === 'undefined') {
-    showToast("Scanner library not loaded. Check internet.", "error");
-    return;
-  }
-
-  // Check for secure context (HTTPS)
-  if (!window.isSecureContext) {
-    showToast("Camera requires HTTPS connection.", "error");
+    showToast("Scanner library not loaded. Please refresh.", "error");
     return;
   }
 
   const container = document.getElementById('web-scanner-container');
-  if (!container) return;
+  const readerEl = document.getElementById('reader');
+  if (!container || !readerEl) return;
   
+  // Show container immediately so the user knows something is happening
   container.classList.remove('hidden');
+  readerEl.innerHTML = '<div style="padding:20px; text-align:center;">Initializing Camera...</div>';
   
-  if (!html5QrCode) {
-    html5QrCode = new Html5Qrcode("reader");
-  }
-
-  // Responsive QR Box
-  const qrboxFunction = (viewfinderWidth, viewfinderHeight) => {
-    let minEdge = Math.min(viewfinderWidth, viewfinderHeight);
-    let qrboxSize = Math.floor(minEdge * 0.7);
-    return { width: qrboxSize, height: qrboxSize };
-  };
-
-  const config = { 
-    fps: 15, 
-    qrbox: qrboxFunction,
-    aspectRatio: 1.0
-  };
-
   try {
-    // Try environment camera (back camera)
+    // Force stop any existing instance
+    if (html5QrCode) {
+      try { await html5QrCode.stop(); } catch(e) {}
+      try { await html5QrCode.clear(); } catch(e) {}
+    }
+    
+    html5QrCode = new Html5Qrcode("reader");
+
+    const qrboxFunction = (viewfinderWidth, viewfinderHeight) => {
+      let minEdge = Math.min(viewfinderWidth, viewfinderHeight);
+      let qrboxSize = Math.floor(minEdge * 0.7);
+      return { width: qrboxSize, height: qrboxSize };
+    };
+
+    const config = { 
+      fps: 15, 
+      qrbox: qrboxFunction,
+      aspectRatio: 1.0,
+      showTorchButtonIfSupported: true
+    };
+
     await html5QrCode.start(
       { facingMode: "environment" }, 
       config,
@@ -389,16 +391,20 @@ async function startWebCameraScan() {
         stopWebCameraScan();
       }
     );
+    
+    showToast("Camera started. Point at a barcode.", "info");
+
   } catch (err) {
     console.error("Web scanner error:", err);
-    let msg = "Camera Error: " + err;
+    let errorStr = err ? err.toString() : "Unknown Error";
+    let msg = "Camera Error: " + errorStr;
     
-    if (err.includes("NotAllowedError") || err.name === 'NotAllowedError') {
-      msg = "Camera permission denied. Please allow it in browser settings.";
-    } else if (err.includes("OverconstrainedError") || err.name === 'OverconstrainedError') {
-      msg = "Back camera not available. Try another browser.";
-    } else if (err.includes("NotFoundError") || err.name === 'NotFoundError') {
+    if (errorStr.includes("NotAllowedError")) {
+      msg = "Camera permission denied. Check your Chrome settings.";
+    } else if (errorStr.includes("NotFoundError")) {
       msg = "No camera found on this device.";
+    } else if (errorStr.includes("NotReadableError")) {
+      msg = "Camera is already in use by another app.";
     }
     
     showToast(msg, "error");
