@@ -346,6 +346,17 @@ async function startCameraScan(target = 'pos') {
 let html5QrCode = null;
 
 async function startWebCameraScan() {
+  if (typeof Html5Qrcode === 'undefined') {
+    showToast("Scanner library not loaded. Check internet.", "error");
+    return;
+  }
+
+  // Check for secure context (HTTPS)
+  if (!window.isSecureContext) {
+    showToast("Camera requires HTTPS connection.", "error");
+    return;
+  }
+
   const container = document.getElementById('web-scanner-container');
   if (!container) return;
   
@@ -355,24 +366,42 @@ async function startWebCameraScan() {
     html5QrCode = new Html5Qrcode("reader");
   }
 
-  const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+  // Responsive QR Box
+  const qrboxFunction = (viewfinderWidth, viewfinderHeight) => {
+    let minEdge = Math.min(viewfinderWidth, viewfinderHeight);
+    let qrboxSize = Math.floor(minEdge * 0.7);
+    return { width: qrboxSize, height: qrboxSize };
+  };
+
+  const config = { 
+    fps: 15, 
+    qrbox: qrboxFunction,
+    aspectRatio: 1.0
+  };
 
   try {
+    // Try environment camera (back camera)
     await html5QrCode.start(
       { facingMode: "environment" }, 
       config,
       (decodedText) => {
-        // Success
         handleBarcodeScan(decodedText, 'camera');
         stopWebCameraScan();
-      },
-      (errorMessage) => {
-        // Silently ignore scan errors
       }
     );
   } catch (err) {
     console.error("Web scanner error:", err);
-    showToast("Could not access camera. Please check permissions.", "error");
+    let msg = "Camera Error: " + err;
+    
+    if (err.includes("NotAllowedError") || err.name === 'NotAllowedError') {
+      msg = "Camera permission denied. Please allow it in browser settings.";
+    } else if (err.includes("OverconstrainedError") || err.name === 'OverconstrainedError') {
+      msg = "Back camera not available. Try another browser.";
+    } else if (err.includes("NotFoundError") || err.name === 'NotFoundError') {
+      msg = "No camera found on this device.";
+    }
+    
+    showToast(msg, "error");
     container.classList.add('hidden');
   }
 }
