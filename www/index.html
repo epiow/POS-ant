@@ -149,7 +149,10 @@
             </div>
             <div class="form-group">
               <label for="product-barcode">Barcode</label>
-              <input type="text" id="product-barcode" class="form-input" placeholder="Scan or type barcode">
+              <div class="search-with-camera">
+                <input type="text" id="product-barcode" class="form-input" placeholder="Scan or type barcode">
+                <button type="button" class="btn btn-outline btn-camera" onclick="startCameraScan('products')" title="Scan with Camera">📷</button>
+              </div>
             </div>
             <div class="form-group">
               <label for="product-category">Category *</label>

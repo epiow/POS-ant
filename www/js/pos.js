@@ -129,7 +129,16 @@ document.addEventListener('keydown', (e) => {
   lastKeyTime = currentTime;
 });
 
+let scanContext = 'pos';
+
 function handleBarcodeScan(barcode, source = 'scanner') {
+  if (scanContext === 'products') {
+    const bcInput = document.getElementById('product-barcode');
+    if (bcInput) bcInput.value = barcode;
+    lookupGlobalProduct(barcode, 'products');
+    return;
+  }
+
   const product = allProducts.find(p => p.barcode === barcode);
   if (product) {
     if (source === 'camera') {
@@ -144,11 +153,11 @@ function handleBarcodeScan(barcode, source = 'scanner') {
     showToast(`Added: ${product.name}`, 'success');
   } else {
     // If not found in local DB, try Open Food Facts API
-    lookupGlobalProduct(barcode);
+    lookupGlobalProduct(barcode, 'pos');
   }
 }
 
-async function lookupGlobalProduct(barcode) {
+async function lookupGlobalProduct(barcode, context = 'pos') {
   try {
     showLoading(true);
     // Mandatory User-Agent for Open Food Facts
@@ -165,9 +174,32 @@ async function lookupGlobalProduct(barcode) {
       const fullName = name + brands;
       const category = p.categories ? p.categories.split(',')[0] : 'Uncategorized';
       
-      showQuickAddModal(barcode, fullName, category);
+      if (context === 'products') {
+        const nameInput = document.getElementById('product-name');
+        const catInput = document.getElementById('product-category');
+        if (nameInput) nameInput.value = fullName;
+        if (catInput) catInput.value = category;
+        showToast('Product details found!', 'success');
+      } else {
+        showQuickAddModal(barcode, fullName, category);
+      }
     } else {
-      showToast(`Product not found: ${barcode}`, 'warning');
+      if (context === 'pos') {
+        showToast(`Product not found: ${barcode}`, 'warning');
+      }
+    }
+  } catch (e) {
+    console.error('API Error:', e);
+    showToast('Failed to lookup barcode online.', 'error');
+  } finally {
+    showLoading(false);
+  }
+}
+
+async function startCameraScan(target = 'pos') {
+  scanContext = target;
+  // 1. Check if we are on a native platform
+  const isNative = typeof Capacitor !== 'undefined' && Capacitor.isNativePlatform();
     }
   } catch (e) {
     console.error('API Error:', e);
