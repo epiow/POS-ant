@@ -219,6 +219,30 @@ body.barcode-scanner-active .modal-overlay { display: none !important; }
   padding-bottom: 40px;
 }
 
+/* Web Scanner Container */
+#web-scanner-container {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.8);
+  z-index: 10001;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.web-scanner-content {
+  background: #fff;
+  padding: 20px;
+  border-radius: var(--radius);
+  width: 100%;
+  max-width: 500px;
+}
+#reader {
+  width: 100%;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
 #pos-search { width: 100%; padding: 10px 14px 10px 38px; border: 1.5px solid var(--gray-200); border-radius: var(--radius-sm); font-size: 14px; background: var(--gray-50) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'/%3E%3C/svg%3E") 12px center no-repeat; transition: border var(--transition); }
 #pos-search:focus { outline: none; border-color: var(--primary); background-color: #fff; }
 #pos-product-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; max-height: 55vh; overflow-y: auto; padding: 4px; }

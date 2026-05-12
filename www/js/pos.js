@@ -259,60 +259,95 @@ async function handleQuickAdd(e) {
 }
 
 async function startCameraScan(target = 'pos') {
-  // Check if Capacitor and BarcodeScanner plugin are available
-  if (typeof Capacitor === 'undefined' || !Capacitor.isPluginAvailable('BarcodeScanner')) {
-    showToast('Camera scanning only works on the mobile app.', 'info');
-    return;
+  // 1. Check if we are on a native platform
+  const isNative = typeof Capacitor !== 'undefined' && Capacitor.isNativePlatform();
+
+  if (isNative && Capacitor.isPluginAvailable('BarcodeScanner')) {
+    // --- Native Path (ML Kit) ---
+    const { BarcodeScanner } = Capacitor.Plugins;
+    try {
+      const status = await BarcodeScanner.checkPermissions();
+      if (status.camera !== 'granted') {
+        const requestStatus = await BarcodeScanner.requestPermissions();
+        if (requestStatus.camera !== 'granted') {
+          showToast('Camera permission denied.', 'error');
+          return;
+        }
+      }
+
+      document.body.classList.add('barcode-scanner-active');
+      const overlay = document.createElement('div');
+      overlay.id = 'camera-scan-overlay';
+      overlay.className = 'barcode-scanner-overlay';
+      overlay.innerHTML = `
+        <div class="scan-region"></div>
+        <div class="scan-controls">
+          <button class="btn btn-danger" id="cancel-scan-btn">✕ Stop Scanning</button>
+        </div>
+      `;
+      document.body.appendChild(overlay);
+
+      document.getElementById('cancel-scan-btn').onclick = async () => {
+        await BarcodeScanner.stopScan();
+        stopCameraUI();
+      };
+
+      const result = await BarcodeScanner.startScan();
+      if (result.hasContent) {
+        handleBarcodeScan(result.content, 'camera');
+      }
+    } catch (e) {
+      console.error('Native scan error:', e);
+      showToast('Failed to start native camera.', 'error');
+    } finally {
+      stopCameraUI();
+    }
+  } else {
+    // --- Web Path (Html5-QRCode) ---
+    startWebCameraScan();
+  }
+}
+
+let html5QrCode = null;
+
+async function startWebCameraScan() {
+  const container = document.getElementById('web-scanner-container');
+  if (!container) return;
+  
+  container.classList.remove('hidden');
+  
+  if (!html5QrCode) {
+    html5QrCode = new Html5Qrcode("reader");
   }
 
-  const { BarcodeScanner } = Capacitor.Plugins;
+  const config = { fps: 10, qrbox: { width: 250, height: 250 } };
 
   try {
-    // 1. Check/Request Permission
-    const status = await BarcodeScanner.checkPermissions();
-    if (status.camera !== 'granted') {
-      const requestStatus = await BarcodeScanner.requestPermissions();
-      if (requestStatus.camera !== 'granted') {
-        showToast('Camera permission denied.', 'error');
-        return;
+    await html5QrCode.start(
+      { facingMode: "environment" }, 
+      config,
+      (decodedText) => {
+        // Success
+        handleBarcodeScan(decodedText, 'camera');
+        stopWebCameraScan();
+      },
+      (errorMessage) => {
+        // Silently ignore scan errors
       }
-    }
-
-    // 2. Prepare UI (Hide app, show transparent background)
-    document.body.classList.add('barcode-scanner-active');
-    
-    // Add an overlay with a cancel button
-    const overlay = document.createElement('div');
-    overlay.id = 'camera-scan-overlay';
-    overlay.className = 'barcode-scanner-overlay';
-    overlay.innerHTML = `
-      <div class="scan-region"></div>
-      <div class="scan-controls">
-        <button class="btn btn-danger" id="cancel-scan-btn">✕ Stop Scanning</button>
-      </div>
-    `;
-    document.body.appendChild(overlay);
-
-    document.getElementById('cancel-scan-btn').onclick = async () => {
-      await BarcodeScanner.stopScan();
-      stopCameraUI();
-    };
-
-    // 3. Start Scanning
-    // Note: This plugin (ML Kit) usually hides the webview automatically or 
-    // requires BarcodeScanner.startScan() which resolves on first scan.
-    const result = await BarcodeScanner.startScan();
-
-    if (result.hasContent) {
-      handleBarcodeScan(result.content, 'camera');
-    }
-
-  } catch (e) {
-    console.error('Camera scan error:', e);
-    showToast('Failed to start camera.', 'error');
-  } finally {
-    stopCameraUI();
+    );
+  } catch (err) {
+    console.error("Web scanner error:", err);
+    showToast("Could not access camera. Please check permissions.", "error");
+    container.classList.add('hidden');
   }
+}
+
+async function stopWebCameraScan() {
+  const container = document.getElementById('web-scanner-container');
+  if (html5QrCode && html5QrCode.isScanning) {
+    await html5QrCode.stop();
+  }
+  if (container) container.classList.add('hidden');
 }
 
 function stopCameraUI() {

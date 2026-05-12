@@ -345,6 +345,14 @@
     <div id="modal-content" class="modal-content"></div>
   </div>
 
+  <!-- Web Camera Scanner Container -->
+  <div id="web-scanner-container" class="hidden">
+    <div class="web-scanner-content">
+      <div id="reader"></div>
+      <button class="btn btn-danger btn-block mt-3" onclick="stopWebCameraScan()">Stop Scanning</button>
+    </div>
+  </div>
+
   <!-- ==================== RECEIPT (print only) ==================== -->
   <div id="receipt-area" class="receipt-area">
     <div id="receipt-content"></div>
@@ -355,6 +363,9 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  
+  <!-- Barcode Scanner for Web -->
+  <script src="https://unpkg.com/html5-qrcode"></script>
 
   <!-- App Scripts (order matters — config first, then modules, then orchestrator) -->
   <script src="js/firebase-config.js"></script>
