@@ -143,9 +143,10 @@ function renderLowStockWithReorders(dailyStats) {
   
   el.innerHTML = lowStock.map(p => {
     let totalQtySold = 0;
+    const prodId = sanitizeKey(p.id);
     dailyStats.forEach(stat => {
-      if (stat.productSales && stat.productSales[p.id]) {
-        totalQtySold += stat.productSales[p.id].qty;
+      if (stat.productSales && stat.productSales[prodId]) {
+        totalQtySold += stat.productSales[prodId].qty;
       }
     });
     

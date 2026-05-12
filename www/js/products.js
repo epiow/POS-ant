@@ -25,7 +25,9 @@ async function addProduct(data) {
   try {
     showLoading(true);
     await db.collection('products').add({
-      name: data.name.trim(), price: Number(data.price), cost: Number(data.cost || 0),
+      name: data.name.trim(), 
+      barcode: (data.barcode || '').trim(),
+      price: Number(data.price), cost: Number(data.cost || 0),
       stock: Number(data.stock), category: data.category.trim(),
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     });
@@ -39,7 +41,9 @@ async function updateProduct(id, data) {
   try {
     showLoading(true);
     await db.collection('products').doc(id).update({
-      name: data.name.trim(), price: Number(data.price), cost: Number(data.cost || 0),
+      name: data.name.trim(), 
+      barcode: (data.barcode || '').trim(),
+      price: Number(data.price), cost: Number(data.cost || 0),
       stock: Number(data.stock), category: data.category.trim()
     });
     showToast('Product updated!', 'success');
@@ -65,11 +69,12 @@ function renderProductList() {
     el.innerHTML = '<div class="empty-state"><p>No products yet. Add your first product above!</p></div>';
     return;
   }
-  let h = '<div class="table-responsive"><table class="data-table"><thead><tr><th>Name</th><th>Category</th><th>Price</th><th>Stock</th><th>Actions</th></tr></thead><tbody>';
+  let h = '<div class="table-responsive"><table class="data-table"><thead><tr><th>Name</th><th>Barcode</th><th>Category</th><th>Price</th><th>Stock</th><th>Actions</th></tr></thead><tbody>';
   allProducts.forEach(p => {
     const low = p.stock < 5;
     h += `<tr class="${low ? 'low-stock-row' : ''}">
       <td><span>${escapeHtml(p.name)}</span>${low ? ' <span class="low-stock-badge">LOW</span>' : ''}</td>
+      <td><span class="barcode-tag">${escapeHtml(p.barcode || '---')}</span></td>
       <td><span class="category-tag">${escapeHtml(p.category)}</span></td>
       <td class="price-cell">₱${p.price.toFixed(2)}</td>
       <td class="stock-cell ${low ? 'text-danger' : ''}">${p.stock}</td>
@@ -87,6 +92,7 @@ function editProduct(id) {
   if (!p) return;
   editingProductId = id;
   document.getElementById('product-name').value = p.name;
+  document.getElementById('product-barcode').value = p.barcode || '';
   document.getElementById('product-price').value = p.price;
   document.getElementById('product-cost').value = p.cost !== undefined ? p.cost : 0;
   document.getElementById('product-stock').value = p.stock;
@@ -109,6 +115,7 @@ function handleProductFormSubmit(e) {
   e.preventDefault();
   const data = {
     name: document.getElementById('product-name').value,
+    barcode: document.getElementById('product-barcode').value,
     price: document.getElementById('product-price').value,
     cost: document.getElementById('product-cost').value,
     stock: document.getElementById('product-stock').value,

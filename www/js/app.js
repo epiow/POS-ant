@@ -94,6 +94,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const cancelBtn = document.getElementById('cancel-sale-btn');
   if (cancelBtn) cancelBtn.addEventListener('click', cancelSale);
 
+  const drawerBtn = document.getElementById('open-drawer-btn');
+  if (drawerBtn) drawerBtn.addEventListener('click', openCashDrawer);
+
   // Transaction filter
   const txf = document.getElementById('tx-filter-select');
   if (txf) txf.addEventListener('change', handleFilterChange);

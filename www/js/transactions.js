@@ -51,17 +51,29 @@ function renderTransactions() {
     return;
   }
 
-  let h = '<div class="table-responsive"><table class="data-table"><thead><tr><th>Date & Time</th><th>Cashier</th><th>Items</th><th>Total</th></tr></thead><tbody>';
+  const user = getCurrentUser();
+  const isAdmin = user && user.role === 'admin';
+
+  let h = `<div class="table-responsive"><table class="data-table"><thead><tr>
+    <th>Date & Time</th>
+    <th>Cashier</th>
+    <th>Items</th>
+    <th>Total</th>
+    ${isAdmin ? '<th>Actions</th>' : ''}
+  </tr></thead><tbody>`;
+
   transactionsCache.forEach(tx => {
     const date = tx.timestamp ? tx.timestamp.toDate() : new Date();
     const dateStr = date.toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' });
     const timeStr = date.toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit' });
     const itemCount = tx.items ? tx.items.reduce((s, i) => s + i.qty, 0) : 0;
+    
     h += `<tr class="clickable-row" onclick="showTransactionDetail('${tx.id}')">
       <td>${dateStr} <span class="text-muted">${timeStr}</span></td>
       <td>${escapeHtml(tx.cashierName || 'N/A')}</td>
       <td>${itemCount} item${itemCount !== 1 ? 's' : ''}</td>
       <td class="price-cell">₱${(tx.total || 0).toFixed(2)}</td>
+      ${isAdmin ? `<td><button class="btn btn-sm btn-delete" onclick="event.stopPropagation(); deleteTransaction('${tx.id}')">Void</button></td>` : ''}
     </tr>`;
   });
   h += '</tbody></table></div>';
@@ -152,9 +164,11 @@ async function deleteTransaction(txId, skipConfirm = false) {
     statsUpdate[`hourlySales.${hourStr}`] = firebase.firestore.FieldValue.increment(-tx.total);
     
     (tx.items || []).forEach(item => {
-      statsUpdate[`categorySales.${item.category || 'Uncategorized'}`] = firebase.firestore.FieldValue.increment(-(item.price * item.qty));
-      statsUpdate[`productSales.${item.id}.qty`] = firebase.firestore.FieldValue.increment(-item.qty);
-      statsUpdate[`productSales.${item.id}.revenue`] = firebase.firestore.FieldValue.increment(-(item.price * item.qty));
+      const catKey = sanitizeKey(item.category || 'Uncategorized');
+      const prodId = sanitizeKey(item.id);
+      statsUpdate[`categorySales.${catKey}`] = firebase.firestore.FieldValue.increment(-(item.price * item.qty));
+      statsUpdate[`productSales.${prodId}.qty`] = firebase.firestore.FieldValue.increment(-item.qty);
+      statsUpdate[`productSales.${prodId}.revenue`] = firebase.firestore.FieldValue.increment(-(item.price * item.qty));
     });
     
     batch.set(dailyStatsRef, statsUpdate, { merge: true });

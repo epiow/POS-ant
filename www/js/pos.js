@@ -101,6 +101,56 @@ function calculateChange() {
   el.classList.toggle('text-danger', change < 0);
 }
 
+// Barcode Scanner Support
+let barcodeBuffer = '';
+let lastKeyTime = Date.now();
+
+document.addEventListener('keydown', (e) => {
+  // Only listen for barcode if we are in POS tab and not in an input field
+  if (currentTab !== 'pos') return;
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+  const currentTime = Date.now();
+  
+  // Scanners usually send keys very fast. If > 100ms between keys, it's likely manual typing.
+  if (currentTime - lastKeyTime > 100) {
+    barcodeBuffer = '';
+  }
+  
+  if (e.key === 'Enter') {
+    if (barcodeBuffer.length > 2) {
+      handleBarcodeScan(barcodeBuffer);
+    }
+    barcodeBuffer = '';
+  } else if (e.key.length === 1) {
+    barcodeBuffer += e.key;
+  }
+  
+  lastKeyTime = currentTime;
+});
+
+function handleBarcodeScan(barcode) {
+  const product = allProducts.find(p => p.barcode === barcode);
+  if (product) {
+    addToCart(product.id);
+    showToast(`Added: ${product.name}`, 'success');
+  } else {
+    showToast(`Barcode not found: ${barcode}`, 'warning');
+  }
+}
+
+function openCashDrawer() {
+  const user = getCurrentUser();
+  if (!user) return;
+  
+  console.log('Opening cash drawer...');
+  showToast('Cash drawer opened.', 'info');
+  
+  // In a real environment with ESC/POS, you'd send: \x1B\x70\x00\x19\xFA
+  // For web-based printing, the drawer often opens automatically on window.print()
+  // if configured in the printer driver.
+}
+
 async function completeSale() {
   if (cart.length === 0) { showToast('Cart is empty!', 'warning'); return; }
   const total = getCartTotal();
@@ -147,10 +197,12 @@ async function completeSale() {
     statsUpdate[`hourlySales.${hourStr}`] = firebase.firestore.FieldValue.increment(total);
     
     cart.forEach(item => {
-      statsUpdate[`categorySales.${item.category}`] = firebase.firestore.FieldValue.increment(item.price * item.qty);
-      statsUpdate[`productSales.${item.id}.name`] = item.name;
-      statsUpdate[`productSales.${item.id}.qty`] = firebase.firestore.FieldValue.increment(item.qty);
-      statsUpdate[`productSales.${item.id}.revenue`] = firebase.firestore.FieldValue.increment(item.price * item.qty);
+      const catKey = sanitizeKey(item.category || 'Uncategorized');
+      const prodId = sanitizeKey(item.id);
+      statsUpdate[`categorySales.${catKey}`] = firebase.firestore.FieldValue.increment(item.price * item.qty);
+      statsUpdate[`productSales.${prodId}.name`] = item.name;
+      statsUpdate[`productSales.${prodId}.qty`] = firebase.firestore.FieldValue.increment(item.qty);
+      statsUpdate[`productSales.${prodId}.revenue`] = firebase.firestore.FieldValue.increment(item.price * item.qty);
     });
 
     batch.set(dailyStatsRef, statsUpdate, { merge: true });

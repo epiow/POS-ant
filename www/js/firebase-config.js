@@ -25,6 +25,12 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 const auth = firebase.auth();
 
+// Utility to sanitize keys for Firestore field names (cannot contain dots)
+function sanitizeKey(key) {
+  if (typeof key !== 'string') return 'Unknown';
+  return key.replace(/\./g, '_');
+}
+
 // Optional: Enable offline persistence (Firestore caches data locally)
 db.enablePersistence({ synchronizeTabs: true }).catch((err) => {
   if (err.code === 'failed-precondition') {
