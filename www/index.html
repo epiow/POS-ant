@@ -187,7 +187,10 @@
         <!-- Products Panel -->
         <div class="pos-products-panel card">
           <h3 class="card-title">Products</h3>
-          <input type="text" id="pos-search" placeholder="Search products...">
+          <div class="search-with-camera">
+            <input type="text" id="pos-search" placeholder="Search products...">
+            <button class="btn btn-outline btn-camera" onclick="startCameraScan('pos')" title="Scan with Camera">📷</button>
+          </div>
           <div id="pos-product-grid"><div class="empty-state"><p>Loading products...</p></div></div>
         </div>
         <!-- Cart Panel -->
@@ -289,7 +292,10 @@
         <div class="pos-layout">
           <div class="pos-products-panel card">
             <h3 class="card-title">Products</h3>
-            <input type="text" id="utang-pos-search" placeholder="Search products...">
+            <div class="search-with-camera">
+              <input type="text" id="utang-pos-search" placeholder="Search products...">
+              <button class="btn btn-outline btn-camera" onclick="startCameraScan('utang')" title="Scan with Camera">📷</button>
+            </div>
             <div id="utang-pos-product-grid"><div class="empty-state"><p>Loading products...</p></div></div>
           </div>
           <div class="pos-cart-panel card">

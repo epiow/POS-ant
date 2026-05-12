@@ -129,14 +129,196 @@ document.addEventListener('keydown', (e) => {
   lastKeyTime = currentTime;
 });
 
-function handleBarcodeScan(barcode) {
+function handleBarcodeScan(barcode, source = 'scanner') {
   const product = allProducts.find(p => p.barcode === barcode);
   if (product) {
-    addToCart(product.id);
+    if (source === 'camera') {
+      if (document.getElementById('section-utang').classList.contains('hidden')) {
+        addToCart(product.id);
+      } else {
+        if (typeof addUtangToCart === 'function') addUtangToCart(product.id);
+      }
+    } else {
+      addToCart(product.id);
+    }
     showToast(`Added: ${product.name}`, 'success');
   } else {
-    showToast(`Barcode not found: ${barcode}`, 'warning');
+    // If not found in local DB, try Open Food Facts API
+    lookupGlobalProduct(barcode);
   }
+}
+
+async function lookupGlobalProduct(barcode) {
+  try {
+    showLoading(true);
+    // Mandatory User-Agent for Open Food Facts
+    const url = `https://world.openfoodfacts.org/api/v2/product/${barcode}?fields=product_name,brands,categories`;
+    const response = await fetch(url, {
+      headers: { 'User-Agent': 'PetleanPOS/1.0 (contact@example.com)' }
+    });
+    const data = await response.json();
+
+    if (data.status === 1 && data.product) {
+      const p = data.product;
+      const name = p.product_name || 'Unknown Product';
+      const brands = p.brands ? ` (${p.brands})` : '';
+      const fullName = name + brands;
+      const category = p.categories ? p.categories.split(',')[0] : 'Uncategorized';
+      
+      showQuickAddModal(barcode, fullName, category);
+    } else {
+      showToast(`Product not found: ${barcode}`, 'warning');
+    }
+  } catch (e) {
+    console.error('API Error:', e);
+    showToast('Failed to lookup barcode online.', 'error');
+  } finally {
+    showLoading(false);
+  }
+}
+
+function showQuickAddModal(barcode, name, category) {
+  let h = `
+    <div class="modal-header">
+      <h3>New Product Found</h3>
+      <button class="modal-close" onclick="closeModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <p class="mb-3">This product isn't in your inventory yet. Would you like to add it?</p>
+      <form id="quick-add-form" onsubmit="handleQuickAdd(event)">
+        <div class="form-group">
+          <label>Barcode</label>
+          <input type="text" id="qa-barcode" class="form-input" value="${barcode}" readonly>
+        </div>
+        <div class="form-group">
+          <label>Name</label>
+          <input type="text" id="qa-name" class="form-input" value="${escapeHtml(name)}" required>
+        </div>
+        <div class="form-group">
+          <label>Category</label>
+          <input type="text" id="qa-category" class="form-input" value="${escapeHtml(category)}" required>
+        </div>
+        <div class="product-form-grid">
+          <div class="form-group">
+            <label>Cost (₱)</label>
+            <input type="number" id="qa-cost" class="form-input" placeholder="0.00" step="0.01" value="0">
+          </div>
+          <div class="form-group">
+            <label>Price (₱) *</label>
+            <input type="number" id="qa-price" class="form-input" placeholder="0.00" step="0.01" required autofocus>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Initial Stock *</label>
+          <input type="number" id="qa-stock" class="form-input" value="10" required>
+        </div>
+        <button type="submit" class="btn btn-primary btn-block mt-3">Add to Inventory & Cart</button>
+      </form>
+    </div>
+  `;
+  document.getElementById('modal-content').innerHTML = h;
+  document.getElementById('modal-overlay').classList.remove('hidden');
+  
+  // Focus price input for speed
+  setTimeout(() => document.getElementById('qa-price').focus(), 100);
+}
+
+async function handleQuickAdd(e) {
+  e.preventDefault();
+  const data = {
+    barcode: document.getElementById('qa-barcode').value,
+    name: document.getElementById('qa-name').value,
+    category: document.getElementById('qa-category').value,
+    cost: document.getElementById('qa-cost').value,
+    price: document.getElementById('qa-price').value,
+    stock: document.getElementById('qa-stock').value
+  };
+
+  try {
+    showLoading(true);
+    const docRef = await db.collection('products').add({
+      name: data.name.trim(),
+      barcode: data.barcode,
+      category: data.category.trim(),
+      cost: Number(data.cost),
+      price: Number(data.price),
+      stock: Number(data.stock),
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    
+    showToast('Product added!', 'success');
+    closeModal();
+    
+    // Add to cart immediately after adding to DB
+    addToCart(docRef.id);
+  } catch (err) {
+    showToast('Failed to add product.', 'error');
+  } finally {
+    showLoading(false);
+  }
+}
+
+async function startCameraScan(target = 'pos') {
+  // Check if Capacitor and BarcodeScanner plugin are available
+  if (typeof Capacitor === 'undefined' || !Capacitor.isPluginAvailable('BarcodeScanner')) {
+    showToast('Camera scanning only works on the mobile app.', 'info');
+    return;
+  }
+
+  const { BarcodeScanner } = Capacitor.Plugins;
+
+  try {
+    // 1. Check/Request Permission
+    const status = await BarcodeScanner.checkPermissions();
+    if (status.camera !== 'granted') {
+      const requestStatus = await BarcodeScanner.requestPermissions();
+      if (requestStatus.camera !== 'granted') {
+        showToast('Camera permission denied.', 'error');
+        return;
+      }
+    }
+
+    // 2. Prepare UI (Hide app, show transparent background)
+    document.body.classList.add('barcode-scanner-active');
+    
+    // Add an overlay with a cancel button
+    const overlay = document.createElement('div');
+    overlay.id = 'camera-scan-overlay';
+    overlay.className = 'barcode-scanner-overlay';
+    overlay.innerHTML = `
+      <div class="scan-region"></div>
+      <div class="scan-controls">
+        <button class="btn btn-danger" id="cancel-scan-btn">✕ Stop Scanning</button>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+
+    document.getElementById('cancel-scan-btn').onclick = async () => {
+      await BarcodeScanner.stopScan();
+      stopCameraUI();
+    };
+
+    // 3. Start Scanning
+    // Note: This plugin (ML Kit) usually hides the webview automatically or 
+    // requires BarcodeScanner.startScan() which resolves on first scan.
+    const result = await BarcodeScanner.startScan();
+
+    if (result.hasContent) {
+      handleBarcodeScan(result.content, 'camera');
+    }
+
+  } catch (e) {
+    console.error('Camera scan error:', e);
+    showToast('Failed to start camera.', 'error');
+  } finally {
+    stopCameraUI();
+  }
+}
+
+function stopCameraUI() {
+  document.body.classList.remove('barcode-scanner-active');
+  const overlay = document.getElementById('camera-scan-overlay');
+  if (overlay) overlay.remove();
 }
 
 function openCashDrawer() {

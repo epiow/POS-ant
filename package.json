@@ -19,6 +19,7 @@
   },
   "homepage": "https://github.com/epiow/POS-ant#readme",
   "dependencies": {
+    "@capacitor-mlkit/barcode-scanning": "^6.1.0",
     "@capacitor/android": "^6.2.1",
     "@capacitor/core": "^6.2.1"
   },
